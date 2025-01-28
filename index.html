@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Match Analysis Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      background-color: #111111;
+      color: #ffffff;
+    }
+
+    select, input {
+      background-color: #1a1a1a;
+      color: #ffffff;
+      border-color: #333333;
+    }
+
+    select:focus, input:focus {
+      border-color: #3b82f6;
+      outline: none;
+    }
+
+    table {
+      background-color: #1a1a1a;
+    }
+
+    th {
+      background-color: #222222;
+    }
+
+    tr:hover {
+      background-color: #222222;
+    }
+
+    .card {
+      background-color: #1a1a1a;
+      border: 1px solid #333333;
+      border-radius: 0.5rem;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-4xl font-bold mb-8 text-blue-500">Match Analysis Dashboard</h1>
+
+    <!-- Filters -->
+    <div class="card p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 text-blue-500">Filters</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1 text-gray-300">
+            <i data-lucide="search" class="inline-block w-4 h-4 mr-1"></i>
+            Team
+          </label>
+          <input
+            type="text"
+            id="team-filter"
+            class="w-full p-2 rounded border focus:ring-2 focus:ring-blue-500 transition-all"
+            placeholder="Enter team name"
+          >
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1 text-gray-300">
+            <i data-lucide="calendar" class="inline-block w-4 h-4 mr-1"></i>
+            Date After
+          </label>
+          <input
+            type="date"
+            id="date-filter"
+            class="w-full p-2 rounded border focus:ring-2 focus:ring-blue-500 transition-all"
+          >
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1 text-gray-300">
+            <i data-lucide="goal" class="inline-block w-4 h-4 mr-1"></i>
+            Both Teams Scored
+          </label>
+          <select
+            id="scored-filter"
+            class="w-full p-2 rounded border focus:ring-2 focus:ring-blue-500 transition-all"
+          >
+            <option value="">All</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Analysis -->
+    <div class="card p-6 mb-8">
+      <h2 class="text-xl font-semibold mb-4 text-blue-500">
+        <i data-lucide="users" class="inline-block w-5 h-5 mr-2"></i>
+        Team Analysis
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <select id="home-team" class="p-2 rounded border focus:ring-2 focus:ring-blue-500 transition-all">
+          <option value="">Select home team</option>
+        </select>
+        <select id="away-team" class="p-2 rounded border focus:ring-2 focus:ring-blue-500 transition-all">
+          <option value="">Select away team</option>
+        </select>
+      </div>
+      <div class="flex items-center mb-4">
+        <input
+          type="checkbox"
+          id="include-reverse"
+          class="mr-2 rounded border-gray-600 text-blue-500 focus:ring-blue-500"
+        >
+        <label for="include-reverse" class="text-sm text-gray-300">
+          Include reverse fixtures
+        </label>
+      </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="card p-6 mb-8 text-center hidden">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error" class="card p-6 mb-8 text-red-500 hidden"></div>
+
+    <!-- Analysis Results -->
+    <div id="analysis-results" class="card p-6 mb-8 hidden">
+      <h3 class="text-xl font-semibold mb-4 text-blue-500">Analysis Results</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-4 rounded bg-[#222222] border border-[#333333]">
+          <p class="text-sm text-gray-400">Total Matches</p>
+          <p class="text-2xl font-bold text-blue-500" id="total-matches">0</p>
+        </div>
+        <div class="p-4 rounded bg-[#222222] border border-[#333333]">
+          <p class="text-sm text-gray-400">Both Teams Scored</p>
+          <p class="text-2xl font-bold text-blue-500"><span id="both-scored-percentage">0</span>%</p>
+        </div>
+        <div class="p-4 rounded bg-[#222222] border border-[#333333]">
+          <p class="text-sm text-gray-400">Avg. Total Goals</p>
+          <p class="text-2xl font-bold text-blue-500" id="avg-total-goals">0</p>
+        </div>
+        <div class="p-4 rounded bg-[#222222] border border-[#333333]">
+          <p class="text-sm text-gray-400">Avg. Home Goals</p>
+          <p class="text-2xl font-bold text-blue-500" id="avg-home-goals">0</p>
+        </div>
+        <div class="p-4 rounded bg-[#222222] border border-[#333333]">
+          <p class="text-sm text-gray-400">Avg. Away Goals</p>
+          <p class="text-2xl font-bold text-blue-500" id="avg-away-goals">0</p>
+        </div>
+        <div class="p-4 rounded bg-[#222222] border border-[#333333]">
+          <p class="text-sm text-gray-400">Home Wins</p>
+          <p class="text-2xl font-bold text-blue-500" id="home-wins">0</p>
+        </div>
+        <div class="p-4 rounded bg-[#222222] border border-[#333333]">
+          <p class="text-sm text-gray-400">Away Wins</p>
+          <p class="text-2xl font-bold text-blue-500" id="away-wins">0</p>
+        </div>
+        <div class="p-4 rounded bg-[#222222] border border-[#333333]">
+          <p class="text-sm text-gray-400">Draws</p>
+          <p class="text-2xl font-bold text-blue-500" id="draws">0</p>
+        </div>
+      </div>
+
+      <div class="mt-6 p-4 rounded bg-[#222222] border border-[#333333]">
+        <h4 class="text-lg font-semibold mb-3 text-blue-500">Additional Statistics</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p class="text-gray-400">Home Form Index: <span id="home-form-index" class="text-white">0</span>%</p>
+            <p class="text-gray-400">Away Form Index: <span id="away-form-index" class="text-white">0</span>%</p>
+          </div>
+          <div>
+            <p class="text-gray-400">Home Win %: <span id="home-win-percentage" class="text-white">0</span>%</p>
+            <p class="text-gray-400">Away Win %: <span id="away-win-percentage" class="text-white">0</span>%</p>
+            <p class="text-gray-400">Draw %: <span id="draw-percentage" class="text-white">0</span>%</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="prediction" class="mt-6 p-4 rounded bg-[#222222] border border-[#333333] hidden">
+        <h4 class="text-lg font-semibold mb-3 text-blue-500">Prediction</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p class="text-gray-400">Home Expected Goals: <span id="home-expected-goals" class="text-white">0</span></p>
+            <p class="text-gray-400">Away Expected Goals: <span id="away-expected-goals" class="text-white">0</span></p>
+          </div>
+          <div>
+            <p class="text-gray-400">Both Teams to Score: <span id="both-teams-to-score-prob" class="text-white">0</span>%</p>
+            <p class="text-gray-400">Predicted Winner: <span id="predicted-winner" class="text-white">Unknown</span></p>
+            <p class="text-gray-400">Confidence: <span id="prediction-confidence" class="text-white">0</span>%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matches List -->
+    <div class="card p-6">
+      <h2 class="text-xl font-semibold mb-4 text-blue-500">Matches (<span id="matches-count">0</span>)</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Home Team</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Score</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Away Team</th>
+            </tr>
+          </thead>
+          <tbody id="matches-table" class="divide-y divide-[#333333]"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Teams data
+    const TEAMS = [
+      { id: "arsenal", name: "London Ágyúk", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t3.png", weight: 1.0, league: "premier-league" },
+      { id: "astonvilla", name: "Aston Oroszlán", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t7.png", league: "premier-league" },
+      { id: "brentford", name: "Brentford", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t94.png", league: "premier-league" },
+      { id: "brighton", name: "Brighton", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t36.png", league: "premier-league" },
+      { id: "chelsea", name: "Chelsea", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t8.png", weight: 0.9, league: "premier-league" },
+      { id: "palace", name: "Crystal Palace", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t31.png", league: "premier-league" },
+      { id: "everton", name: "Everton", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t11.png", league: "premier-league" },
+      { id: "fulham", name: "Fulham", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t54.png", league: "premier-league" },
+      { id: "liverpool", name: "Liverpool", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t14.png", weight: 0.9, league: "premier-league" },
+      { id: "mancity", name: "Manchester Kék", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t43.png", weight: 0.8, league: "premier-league" },
+      { id: "newcastle", name: "Newcastle", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t4.png", league: "premier-league" },
+      { id: "nottingham", name: "Nottingham", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t17.png", league: "premier-league" },
+      { id: "tottenham", name: "Tottenham", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t6.png", weight: 1.1, league: "premier-league" },
+      { id: "manutd", name: "Vörös Ördögök", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t1.png", weight: 0.9, league: "premier-league" },
+      { id: "westham", name: "West Ham", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t21.png", league: "premier-league" },
+      { id: "wolves", name: "Wolverhampton", logoUrl: "https://resources.premierleague.com/premierleague/badges/50/t39.png", league: "premier-league" },
+    ].sort((a, b) => a.name.localeCompare(b.name));
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Populate team selects
+    const homeTeamSelect = document.getElementById('home-team');
+    const awayTeamSelect = document.getElementById('away-team');
+
+    TEAMS.forEach(team => {
+      const homeOption = new Option(team.name, team.id);
+      const awayOption = new Option(team.name, team.id);
+      homeTeamSelect.add(homeOption);
+      awayTeamSelect.add(awayOption);
+    });
+
+    // Utility functions
+    const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString();
+
+    const showLoading = () => {
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('error').classList.add('hidden');
+    };
+
+    const hideLoading = () => {
+      document.getElementById('loading').classList.add('hidden');
+    };
+
+    const showError = (message) => {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = message;
+      errorDiv.classList.remove('hidden');
+    };
+
+    const updateMatchesTable = (matches) => {
+      const tbody = document.getElementById('matches-table');
+      tbody.innerHTML = '';
+      document.getElementById('matches-count').textContent = matches.length;
+
+      if (matches.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="px-6 py-4 text-center text-gray-400">
+              No matches found
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      matches.forEach(match => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td class="px-6 py-4">${formatDate(match.date)}</td>
+          <td class="px-6 py-4">${match.home_team}</td>
+          <td class="px-6 py-4 font-semibold text-blue-500">${match.score.home} - ${match.score.away}</td>
+          <td class="px-6 py-4">${match.away_team}</td>
+        `;
+      });
+    };
+
+    const updateAnalysis = (analysis, prediction) => {
+      const resultsDiv = document.getElementById('analysis-results');
+      const predictionDiv = document.getElementById('prediction');
+      
+      if (!analysis) {
+        resultsDiv.classList.add('hidden');
+        return;
+      }
+
+      resultsDiv.classList.remove('hidden');
+      
+      // Update basic stats
+      document.getElementById('total-matches').textContent = analysis.matches_count || 0;
+      document.getElementById('both-scored-percentage').textContent = 
+        analysis.both_teams_scored_percentage ? analysis.both_teams_scored_percentage.toFixed(2) : '0.00';
+      document.getElementById('avg-total-goals').textContent = 
+        analysis.average_goals ? analysis.average_goals.average_total_goals.toFixed(2) : '0.00';
+      document.getElementById('avg-home-goals').textContent = 
+        analysis.average_goals ? analysis.average_goals.average_home_goals.toFixed(2) : '0.00';
+      document.getElementById('avg-away-goals').textContent = 
+        analysis.average_goals ? analysis.average_goals.average_away_goals.toFixed(2) : '0.00';
+      
+      if (analysis.head_to_head_stats) {
+        document.getElementById('home-wins').textContent = analysis.head_to_head_stats.home_wins || 0;
+        document.getElementById('away-wins').textContent = analysis.head_to_head_stats.away_wins || 0;
+        document.getElementById('draws').textContent = analysis.head_to_head_stats.draws || 0;
+        document.getElementById('home-win-percentage').textContent = 
+          analysis.head_to_head_stats.home_win_percentage ? 
+          analysis.head_to_head_stats.home_win_percentage.toFixed(2) : '0.00';
+        document.getElementById('away-win-percentage').textContent = 
+          analysis.head_to_head_stats.away_win_percentage ? 
+          analysis.head_to_head_stats.away_win_percentage.toFixed(2) : '0.00';
+        document.getElementById('draw-percentage').textContent = 
+          analysis.head_to_head_stats.draw_percentage ? 
+          analysis.head_to_head_stats.draw_percentage.toFixed(2) : '0.00';
+      }
+
+      document.getElementById('home-form-index').textContent = 
+        analysis.home_form_index ? analysis.home_form_index.toFixed(2) : '0.00';
+      document.getElementById('away-form-index').textContent = 
+        analysis.away_form_index ? analysis.away_form_index.toFixed(2) : '0.00';
+
+      if (prediction) {
+        predictionDiv.classList.remove('hidden');
+        document.getElementById('home-expected-goals').textContent = 
+          prediction.homeExpectedGoals ? prediction.homeExpectedGoals.toFixed(2) : '0.00';
+        document.getElementById('away-expected-goals').textContent = 
+          prediction.awayExpectedGoals ? prediction.awayExpectedGoals.toFixed(2) : '0.00';
+        document.getElementById('both-teams-to-score-prob').textContent = 
+          prediction.bothTeamsToScoreProb ? prediction.bothTeamsToScoreProb.toFixed(2) : '0.00';
+        document.getElementById('predicted-winner').textContent = 
+          prediction.predictedWinner ? prediction.predictedWinner : 'Unknown';
+        document.getElementById('prediction-confidence').textContent = 
+          prediction.confidence ? (prediction.confidence * 100).toFixed(2) : '0.00';
+      } else {
+        predictionDiv.classList.add('hidden');
+      }
+    };
+
+    // API functions
+    const loadMatches = async (params = {}) => {
+      showLoading();
+      try {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await fetch(`https://www.winmix.hu/api/2/fullapi.php?${queryString}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        if (data) {
+          updateMatchesTable(data.matches || []);
+          if (data.team_analysis || data.prediction) {
+            updateAnalysis(data.team_analysis, data.prediction);
+          } else {
+            document.getElementById('analysis-results').classList.add('hidden');
+          }
+        }
+        return data;
+      } catch (error) {
+        console.error('Error loading matches:', error);
+        showError('Failed to load matches. Please try again later.');
+        updateMatchesTable([]);
+        document.getElementById('analysis-results').classList.add('hidden');
+      } finally {
+        hideLoading();
+      }
+    };
+
+    // Event handlers
+    const handleFilter = async () => {
+      const filters = {
+        team: document.getElementById('team-filter').value,
+        date: document.getElementById('date-filter').value,
+        both_teams_scored: document.getElementById('scored-filter').value
+      };
+      await loadMatches(filters);
+    };
+
+    const handleTeamAnalysis = async () => {
+      const homeTeam = document.getElementById('home-team').value;
+      const awayTeam = document.getElementById('away-team').value;
+      const includeReverse = document.getElementById('include-reverse').checked;
+      
+      if (!homeTeam || !awayTeam) {
+        updateMatchesTable([]);
+        document.getElementById('analysis-results').classList.add('hidden');
+        return;
+      }
+
+      showLoading();
+
+      try {
+        // Load direct matches
+        const queryParams = {
+          home_team: homeTeam,
+          away_team: awayTeam,
+          include_analysis: 'true'
+        };
+        const directData = await fetch(`https://www.winmix.hu/api/2/fullapi.php?${new URLSearchParams(queryParams)}`).then(res => res.json());
+        
+        let combinedData = directData;
+
+        if (includeReverse && directData) {
+          // Load reverse matches
+          const reverseParams = {
+            home_team: awayTeam,
+            away_team: homeTeam,
+            include_analysis: 'true'
+          };
+          const reverseData = await fetch(`https://www.winmix.hu/api/2/fullapi.php?${new URLSearchParams(reverseParams)}`).then(res => res.json());
+          
+          if (reverseData?.matches) {
+            combinedData = {
+              matches: [...(directData.matches || []), ...(reverseData.matches || [])],
+              team_analysis: directData.team_analysis && reverseData.team_analysis ? {
+                ...directData.team_analysis,
+                matches_count: (directData.team_analysis.matches_count || 0) + (reverseData.team_analysis.matches_count || 0),
+                both_teams_scored_percentage: (
+                  (directData.team_analysis.both_teams_scored_percentage + reverseData.team_analysis.both_teams_scored_percentage) / 2
+                ),
+                average_goals: {
+                  average_total_goals: (
+                    (directData.team_analysis.average_goals.average_total_goals + reverseData.team_analysis.average_goals.average_total_goals) / 2
+                  ),
+                  average_home_goals: (
+                    (directData.team_analysis.average_goals.average_home_goals + reverseData.team_analysis.average_goals.average_away_goals) / 2
+                  ),
+                  average_away_goals: (
+                    (directData.team_analysis.average_goals.average_away_goals + reverseData.team_analysis.average_goals.average_home_goals) / 2
+                  )
+                },
+                head_to_head_stats: {
+                  home_wins: directData.team_analysis.head_to_head_stats.home_wins + reverseData.team_analysis.head_to_head_stats.away_wins,
+                  away_wins: directData.team_analysis.head_to_head_stats.away_wins + reverseData.team_analysis.head_to_head_stats.home_wins,
+                  draws: directData.team_analysis.head_to_head_stats.draws + reverseData.team_analysis.head_to_head_stats.draws,
+                  home_win_percentage: (
+                    (directData.team_analysis.head_to_head_stats.home_win_percentage + reverseData.team_analysis.head_to_head_stats.away_win_percentage) / 2
+                  ),
+                  away_win_percentage: (
+                    (directData.team_analysis.head_to_head_stats.away_win_percentage + reverseData.team_analysis.head_to_head_stats.home_win_percentage) / 2
+                  ),
+                  draw_percentage: (
+                    (directData.team_analysis.head_to_head_stats.draw_percentage + reverseData.team_analysis.head_to_head_stats.draw_percentage) / 2
+                  )
+                },
+                home_form_index: (directData.team_analysis.home_form_index + reverseData.team_analysis.away_form_index) / 2,
+                away_form_index: (directData.team_analysis.away_form_index + reverseData.team_analysis.home_form_index) / 2
+              } : directData.team_analysis,
+              prediction: directData.prediction
+            };
+          }
+        }
+
+        updateMatchesTable(combinedData.matches || []);
+        updateAnalysis(combinedData.team_analysis, combinedData.prediction);
+      } catch (error) {
+        console.error('Error in team analysis:', error);
+        showError('Failed to load team analysis. Please try again.');
+        updateMatchesTable([]);
+        document.getElementById('analysis-results').classList.add('hidden');
+      } finally {
+        hideLoading();
+      }
+    };
+
+    // Add event listeners
+    document.getElementById('team-filter').addEventListener('input', handleFilter);
+    document.getElementById('date-filter').addEventListener('change', handleFilter);
+    document.getElementById('scored-filter').addEventListener('change', handleFilter);
+    document.getElementById('home-team').addEventListener('change', handleTeamAnalysis);
+    document.getElementById('away-team').addEventListener('change', handleTeamAnalysis);
+    document.getElementById('include-reverse').addEventListener('change', handleTeamAnalysis);
+
+    // Initial load
+    loadMatches();
+  </script>
+</body>
+</html>
